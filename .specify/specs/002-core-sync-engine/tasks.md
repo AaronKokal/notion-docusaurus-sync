@@ -199,7 +199,7 @@
   - `deleteMarkdownFile(filePath: string): Promise<void>` — Deletes a file. No error if file doesn't exist.
   - `slugFromTitle(title: string): string` — Convert title to kebab-case slug: lowercase, replace spaces/special chars with hyphens, collapse consecutive hyphens, trim leading/trailing hyphens.
 
-- [ ] T016 [US5] Create `test/unit/file-writer.test.ts` — Unit tests:
+- [x] T016 [US5] Create `test/unit/file-writer.test.ts` — Unit tests:
   - Test `writeMarkdownFile` creates file with correct content
   - Test `writeMarkdownFile` creates directory if missing
   - Test `writeMarkdownFile` with slug containing only safe chars
