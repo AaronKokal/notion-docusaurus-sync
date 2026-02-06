@@ -69,13 +69,13 @@
 
 ### Implementation
 
-- [ ] T005 [P] [US3] Create `src/converter/md-to-rich-text.ts`:
+- [x] T005 [P] [US3] Create `src/converter/md-to-rich-text.ts`:
   - `phrasesToRichText(nodes: PhrasingContent[]): RichTextPayload[]` — Walk mdast phrasing content depth-first. Maintain annotation context (bold, italic, code, strikethrough). At leaf `text` nodes, emit rich_text element with accumulated annotations. Handle `link` nodes by setting `text.link.url`. Handle `inlineCode` as a single rich_text with `code: true` annotation.
   - Type: `RichTextPayload = { type: 'text', text: { content: string, link?: { url: string } }, annotations: { bold?: boolean, italic?: boolean, code?: boolean, strikethrough?: boolean } }`
   - Handle empty/null input → empty array
   - Handle nested annotations: bold inside italic inside link → all annotations applied to the leaf text
 
-- [ ] T006 [P] [US3] Create `test/unit/md-to-rich-text.test.ts` — Unit tests:
+- [x] T006 [P] [US3] Create `test/unit/md-to-rich-text.test.ts` — Unit tests:
   - Plain text → single rich_text with no annotations
   - Bold text (`strong` node) → `bold: true`
   - Italic text (`emphasis` node) → `italic: true`
