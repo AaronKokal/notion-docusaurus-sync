@@ -263,7 +263,7 @@
 
 ### Implementation
 
-- [ ] T017 [US6] Add `syncGitToNotion(config: SyncConfig): Promise<SyncResult>` to `src/sync/engine.ts`:
+- [x] T017 [US6] Add `syncGitToNotion(config: SyncConfig): Promise<SyncResult>` to `src/sync/engine.ts`:
   - Initialize NotionClientWrapper with config.notionToken (reuse if already initialized)
   - Resolve data source ID from config.databaseId (cached)
   - Load sync state from config.stateFile
