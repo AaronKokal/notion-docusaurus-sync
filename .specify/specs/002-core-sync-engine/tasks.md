@@ -194,7 +194,7 @@
 
 ### Implementation
 
-- [ ] T015 [US5] Create `src/sync/file-writer.ts`:
+- [x] T015 [US5] Create `src/sync/file-writer.ts`:
   - `writeMarkdownFile(outputDir: string, slug: string, frontmatter: string, body: string): Promise<string>` — Writes `{outputDir}/{slug}.md` with content `{frontmatter}\n{body}`. Creates output directory if it doesn't exist. Returns the file path written.
   - `deleteMarkdownFile(filePath: string): Promise<void>` — Deletes a file. No error if file doesn't exist.
   - `slugFromTitle(title: string): string` — Convert title to kebab-case slug: lowercase, replace spaces/special chars with hyphens, collapse consecutive hyphens, trim leading/trailing hyphens.
