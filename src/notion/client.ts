@@ -128,19 +128,23 @@ export class NotionClientWrapper {
    */
   async queryPages(
     dataSourceId: string,
-    filter?: object
+    filter?: unknown
   ): Promise<NotionPage[]> {
     const allPages: NotionPage[] = [];
     let cursor: string | undefined = undefined;
     let hasMore = true;
 
     while (hasMore) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const queryParams: any = {
+        data_source_id: dataSourceId,
+        start_cursor: cursor,
+      };
+      if (filter) {
+        queryParams.filter = filter;
+      }
       const response = await this.executeWithRateLimiting(() =>
-        this.client.dataSources.query({
-          data_source_id: dataSourceId,
-          start_cursor: cursor,
-          ...(filter && { filter }),
-        })
+        this.client.dataSources.query(queryParams)
       );
 
       // Filter to full page objects only
