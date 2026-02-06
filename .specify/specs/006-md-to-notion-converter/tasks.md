@@ -323,7 +323,7 @@
   - Update `syncNotionToGit` to accept optional `excludePageIds` parameter (skip pages that Git won in conflict)
   - Update `syncGitToNotion` to accept optional `excludeSlugs` parameter (skip files that Notion won in conflict)
 
-- [ ] T021 [US7] Update `src/cli.ts` — Modify `sync` command:
+- [x] T021 [US7] Update `src/cli.ts` — Modify `sync` command:
   - Add `--bidirectional` flag to existing `sync` command
   - When `--bidirectional` is set: call `syncBidirectional` instead of `syncNotionToGit`
   - Add `--conflict <strategy>` flag (applies to both `sync --bidirectional` and `push`)
