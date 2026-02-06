@@ -40,7 +40,7 @@
 
 ### Implementation
 
-- [ ] T003 [US1] Create `src/parser/markdown-parser.ts`:
+- [x] T003 [US1] Create `src/parser/markdown-parser.ts`:
   - `extractFrontmatter(content: string): { frontmatter: Record<string, unknown>, body: string }` — Split content on `---` delimiters, parse YAML with existing `yaml` package. Handle: no frontmatter, empty frontmatter, frontmatter only.
   - `parseMarkdown(body: string): Root` — Set up unified pipeline: `unified().use(remarkParse).use(remarkGfm).use(remarkDirective).parse(body)`. Returns mdast Root node.
   - `parseMarkdownFile(content: string): { frontmatter: Record<string, unknown>, ast: Root }` — Combines both: extract frontmatter, parse body, return both.
