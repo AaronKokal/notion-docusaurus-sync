@@ -193,7 +193,7 @@
   - `MarkdownFileInfo`: `{ filePath: string, slug: string, content: string, contentHash: string, lastModified: string }`
   - Slug derived from filename: strip `.md` extension, keep as-is (already kebab-case from file-writer)
 
-- [ ] T012 [US5] Create `test/unit/file-reader.test.ts` — Unit tests:
+- [x] T012 [US5] Create `test/unit/file-reader.test.ts` — Unit tests:
   - Scan directory with 3 .md files → returns 3 MarkdownFileInfo objects
   - Scan empty directory → returns empty array
   - Correctly computes content hash (SHA-256)
