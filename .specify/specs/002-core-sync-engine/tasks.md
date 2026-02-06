@@ -220,7 +220,7 @@
 
 ### Implementation
 
-- [ ] T017 [US6] Create `src/sync/engine.ts` — `syncNotionToGit(config: SyncConfig): Promise<SyncResult>`:
+- [x] T017 [US6] Create `src/sync/engine.ts` — `syncNotionToGit(config: SyncConfig): Promise<SyncResult>`:
   - Initialize NotionClientWrapper with config.notionToken
   - Resolve data source ID from config.databaseId
   - Load sync state from config.stateFile
