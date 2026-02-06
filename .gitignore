@@ -7,6 +7,9 @@ dist/
 # Ralph state files
 .specify/specs/**/.ralph/
 
+# Sync state file
+.notion-sync-state.json
+
 # OS files
 .DS_Store
 Thumbs.db
