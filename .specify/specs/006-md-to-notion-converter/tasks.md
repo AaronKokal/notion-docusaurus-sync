@@ -241,7 +241,7 @@
   - Add `detectConflicts(notionChanges: { changed: NotionPage[] }, gitChanges: { changed: MarkdownFileInfo[] }, state: SyncStateFile): ConflictRecord[]` — find pages that changed on both sides since last sync. Compare `notionLastEdited` vs stored and `gitContentHash` vs stored. Return conflict records.
   - Keep existing functions untouched.
 
-- [ ] T016 [US6] Add tests to `test/unit/sync-state.test.ts` (extend existing test file):
+- [x] T016 [US6] Add tests to `test/unit/sync-state.test.ts` (extend existing test file):
   - Test `detectGitChanges` with new file (not in state) → in changed list
   - Test `detectGitChanges` with changed file (different hash) → in changed list
   - Test `detectGitChanges` with unchanged file (same hash) → in unchanged list
