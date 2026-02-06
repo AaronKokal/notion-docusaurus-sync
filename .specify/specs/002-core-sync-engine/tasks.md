@@ -160,7 +160,7 @@
 
 ### Implementation
 
-- [ ] T013 [US4] Create `src/sync/state.ts`:
+- [x] T013 [US4] Create `src/sync/state.ts`:
   - `loadState(stateFilePath: string): Promise<SyncStateFile>` — Read JSON state file. If file doesn't exist, return empty state with `version: 1`. If corrupted/unparseable, log warning and return empty state (triggers full re-sync).
   - `saveState(stateFilePath: string, state: SyncStateFile): Promise<void>` — Write JSON state file atomically (write to .tmp, rename)
   - `detectChanges(state: SyncStateFile, pages: NotionPage[]): { changed: NotionPage[], unchanged: string[], deleted: string[] }`:
