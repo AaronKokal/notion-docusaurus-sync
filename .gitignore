@@ -13,3 +13,9 @@ Thumbs.db
 
 # Ralph Wiggum Loop state
 .ralph/
+
+# Ralph machine-specific symlinks (recreated by install.sh per machine)
+.specify/ralph/bin
+.specify/ralph/lib
+.specify/ralph/templates
+/ralph
