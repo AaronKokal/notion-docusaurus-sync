@@ -15,21 +15,25 @@
  * Full CLI with more options will be implemented in spec 007.
  */
 
-import { syncNotionToGit, type SyncOptions } from "./sync/engine.js";
-import type { SyncConfig } from "./types.js";
+import { syncNotionToGit, syncGitToNotion, type SyncOptions } from "./sync/engine.js";
+import type { SyncConfig, ConflictStrategy } from "./types.js";
 
 interface CliArgs {
   command: string | null;
   fullSync: boolean;
   outputDir: string;
+  conflictStrategy: ConflictStrategy;
   help: boolean;
 }
+
+const VALID_CONFLICT_STRATEGIES: ConflictStrategy[] = ["latest-wins", "notion-wins", "git-wins"];
 
 function parseArgs(args: string[]): CliArgs {
   const result: CliArgs = {
     command: null,
     fullSync: false,
     outputDir: "./docs",
+    conflictStrategy: "latest-wins",
     help: false,
   };
 
@@ -49,6 +53,20 @@ function parseArgs(args: string[]): CliArgs {
         console.error("Error: --output requires a directory path");
         process.exit(1);
       }
+    } else if (arg === "--conflict") {
+      const nextArg = args[i + 1];
+      if (nextArg && !nextArg.startsWith("-")) {
+        if (VALID_CONFLICT_STRATEGIES.includes(nextArg as ConflictStrategy)) {
+          result.conflictStrategy = nextArg as ConflictStrategy;
+        } else {
+          console.error(`Error: --conflict must be one of: ${VALID_CONFLICT_STRATEGIES.join(", ")}`);
+          process.exit(1);
+        }
+        i++; // Skip the value
+      } else {
+        console.error(`Error: --conflict requires a strategy (${VALID_CONFLICT_STRATEGIES.join(", ")})`);
+        process.exit(1);
+      }
     } else if (!arg.startsWith("-") && !result.command) {
       result.command = arg;
     }
@@ -62,14 +80,17 @@ function printHelp(): void {
 notion-docusaurus-sync - Sync Notion databases to Docusaurus markdown
 
 Usage:
-  notion-docusaurus-sync sync [options]
+  notion-docusaurus-sync <command> [options]
 
 Commands:
-  sync    Sync pages from Notion to markdown files
+  sync    Sync pages from Notion to markdown files (pull)
+  push    Push markdown files to Notion (Git → Notion)
 
 Options:
-  --full, -f      Force full re-sync (ignore change detection)
+  --full          Force full sync (ignore change detection)
   --output, -o    Output directory for markdown files (default: ./docs)
+  --conflict      Conflict resolution strategy (default: latest-wins)
+                  Values: latest-wins, notion-wins, git-wins
   --help, -h      Show this help message
 
 Environment Variables (required):
@@ -80,6 +101,9 @@ Examples:
   notion-docusaurus-sync sync
   notion-docusaurus-sync sync --full
   notion-docusaurus-sync sync --output ./my-docs
+  notion-docusaurus-sync push
+  notion-docusaurus-sync push --full
+  notion-docusaurus-sync push --conflict git-wins
 `);
 }
 
@@ -123,7 +147,7 @@ async function runSync(args: CliArgs): Promise<void> {
     databaseId: configValues.databaseId,
     outputDir: args.outputDir,
     imageDir: `${args.outputDir}/../static/img`, // Default image directory
-    conflictStrategy: "latest-wins",
+    conflictStrategy: args.conflictStrategy,
     imageStrategy: "local",
     statusProperty: "Status",
     publishedStatus: "Published",
@@ -170,6 +194,67 @@ async function runSync(args: CliArgs): Promise<void> {
   }
 }
 
+async function runPush(args: CliArgs): Promise<void> {
+  // Validate configuration
+  const configValues = validateConfig();
+  if (!configValues) {
+    process.exit(1);
+  }
+
+  // Build sync configuration
+  const config: SyncConfig = {
+    notionToken: configValues.token,
+    databaseId: configValues.databaseId,
+    outputDir: args.outputDir,
+    imageDir: `${args.outputDir}/../static/img`, // Default image directory
+    conflictStrategy: args.conflictStrategy,
+    imageStrategy: "local",
+    statusProperty: "Status",
+    publishedStatus: "Published",
+    stateFile: "./.notion-sync-state.json",
+  };
+
+  const options: SyncOptions = {
+    fullSync: args.fullSync,
+    quiet: false,
+  };
+
+  console.log("Starting Git → Notion push...");
+  console.log(`  Database: ${config.databaseId}`);
+  console.log(`  Source: ${config.outputDir}`);
+  console.log(`  Mode: ${args.fullSync ? "full" : "incremental"}`);
+  console.log(`  Conflict strategy: ${config.conflictStrategy}`);
+  console.log("");
+
+  try {
+    const result = await syncGitToNotion(config, options);
+
+    // Print summary
+    const created = result.gitToNotion.filter((r) => r.action === "created").length;
+    const updated = result.gitToNotion.filter((r) => r.action === "updated").length;
+    const archived = result.gitToNotion.filter((r) => r.action === "deleted").length;
+    const skipped = result.gitToNotion.filter((r) => r.action === "skipped").length;
+
+    console.log("");
+    console.log("Push complete:");
+    console.log(`  Created: ${created}`);
+    console.log(`  Updated: ${updated}`);
+    console.log(`  Archived: ${archived}`);
+    console.log(`  Skipped: ${skipped}`);
+
+    if (result.errors.length > 0) {
+      console.log(`  Errors: ${result.errors.length}`);
+      for (const error of result.errors) {
+        console.error(`    - ${error.message}`);
+      }
+      process.exit(1);
+    }
+  } catch (error) {
+    console.error("Push failed:", error instanceof Error ? error.message : error);
+    process.exit(1);
+  }
+}
+
 async function main(): Promise<void> {
   // Skip node and script path
   const args = parseArgs(process.argv.slice(2));
@@ -182,6 +267,9 @@ async function main(): Promise<void> {
   switch (args.command) {
     case "sync":
       await runSync(args);
+      break;
+    case "push":
+      await runPush(args);
       break;
     default:
       console.error(`Unknown command: ${args.command}`);
