@@ -50,7 +50,7 @@
   - Rate limiting: simple delay between requests (minimum 334ms between calls = 3 req/s). On 429 response, retry with exponential backoff (1s, 2s, 4s, max 3 retries)
   - All methods use the SDK v5 API. No legacy REST calls.
 
-- [ ] T006 [US1] Create `test/unit/notion-client.test.ts` — Unit tests for NotionClientWrapper:
+- [x] T006 [US1] Create `test/unit/notion-client.test.ts` — Unit tests for NotionClientWrapper:
   - Test `getDataSourceId` returns correct ID from mocked `databases.retrieve` response
   - Test `getDataSourceId` caches result (second call doesn't hit API)
   - Test `queryPages` handles pagination (mock two pages of results with `has_more: true` then `has_more: false`)
