@@ -210,7 +210,7 @@
   - `archivePage(pageId: string): Promise<void>` — Update page with `archived: true` via `client.rawClient.pages.update(...)`.
   - All operations use `client.executeWithRateLimiting()` for rate limiting.
 
-- [ ] T014 [US5] Create `test/unit/notion-writer.test.ts` — Unit tests:
+- [x] T014 [US5] Create `test/unit/notion-writer.test.ts` — Unit tests:
   - `createPage` calls pages.create with correct properties and children
   - `createPage` with >100 blocks: first 100 in create, rest via append
   - `replacePageContent` deletes existing blocks then appends new ones
