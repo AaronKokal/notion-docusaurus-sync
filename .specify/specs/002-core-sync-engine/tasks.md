@@ -102,7 +102,7 @@
   - Consecutive list items of the same type should NOT have blank lines between them
   - Non-list blocks should have blank lines between them
 
-- [ ] T010 [US2] Create `test/unit/blocks-to-md.test.ts` — Unit tests:
+- [x] T010 [US2] Create `test/unit/blocks-to-md.test.ts` — Unit tests:
   - One test per block type (paragraph, headings, code, lists, quote, callout, divider, table, toggle, image, to_do, bookmark)
   - Test nested list items (indentation)
   - Test callout-to-admonition mapping
