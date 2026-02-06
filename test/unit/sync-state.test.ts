@@ -22,10 +22,14 @@ import {
   updatePageState,
   removePageState,
   computeContentHash,
+  detectGitChanges,
+  findPageBySlug,
+  detectConflicts,
   STATE_FILE_VERSION,
   type ChangeDetectionResult,
+  type GitChangeDetectionResult,
 } from "../../src/sync/state.js";
-import type { SyncStateFile, PageStateEntry } from "../../src/types.js";
+import type { SyncStateFile, PageStateEntry, MarkdownFileInfo, ConflictRecord } from "../../src/types.js";
 import { mockNotionPage, resetMockCounters } from "../helpers.js";
 import type { NotionPage } from "../../src/notion/types.js";
 
@@ -958,6 +962,657 @@ Paragraph 2.
 
     it("is version 1", () => {
       expect(STATE_FILE_VERSION).toBe(1);
+    });
+  });
+
+  // ===========================================================================
+  // Git-side Change Detection Tests (for Git → Notion sync)
+  // ===========================================================================
+
+  describe("detectGitChanges", () => {
+    /**
+     * Helper to create a MarkdownFileInfo for testing.
+     */
+    function createMarkdownFileInfo(
+      slug: string,
+      contentHash: string,
+      lastModified: string = "2026-02-06T12:00:00Z"
+    ): MarkdownFileInfo {
+      return {
+        filePath: `docs/${slug}.md`,
+        slug,
+        content: `# ${slug}\n\nSome content.`,
+        contentHash,
+        lastModified,
+      };
+    }
+
+    it("marks all files as changed when state is empty (first sync)", () => {
+      const state = createEmptyState();
+      const files = [
+        createMarkdownFileInfo("getting-started", "sha256:abc123"),
+        createMarkdownFileInfo("installation", "sha256:def456"),
+      ];
+
+      const result = detectGitChanges(state, files);
+
+      expect(result.changed).toHaveLength(2);
+      expect(result.unchanged).toHaveLength(0);
+      expect(result.deleted).toHaveLength(0);
+    });
+
+    it("marks file as changed when not in state (new file)", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T10:00:00Z",
+        pages: {
+          "page-1": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:existing",
+            slug: "existing-page",
+            filePath: "docs/existing-page.md",
+          },
+        },
+      };
+      const files = [
+        createMarkdownFileInfo("existing-page", "sha256:existing"),
+        createMarkdownFileInfo("new-page", "sha256:newfile"),
+      ];
+
+      const result = detectGitChanges(state, files);
+
+      expect(result.changed).toHaveLength(1);
+      expect(result.changed[0].slug).toBe("new-page");
+      expect(result.unchanged).toHaveLength(1);
+      expect(result.unchanged[0]).toBe("existing-page");
+    });
+
+    it("marks file as changed when content hash differs", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T10:00:00Z",
+        pages: {
+          "page-1": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:oldhash",
+            slug: "my-page",
+            filePath: "docs/my-page.md",
+          },
+        },
+      };
+      const files = [
+        createMarkdownFileInfo("my-page", "sha256:newhash"),
+      ];
+
+      const result = detectGitChanges(state, files);
+
+      expect(result.changed).toHaveLength(1);
+      expect(result.changed[0].slug).toBe("my-page");
+      expect(result.unchanged).toHaveLength(0);
+    });
+
+    it("marks file as unchanged when content hash matches", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T10:00:00Z",
+        pages: {
+          "page-1": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:samehash",
+            slug: "my-page",
+            filePath: "docs/my-page.md",
+          },
+        },
+      };
+      const files = [
+        createMarkdownFileInfo("my-page", "sha256:samehash"),
+      ];
+
+      const result = detectGitChanges(state, files);
+
+      expect(result.changed).toHaveLength(0);
+      expect(result.unchanged).toHaveLength(1);
+      expect(result.unchanged[0]).toBe("my-page");
+    });
+
+    it("detects deleted files (in state but no corresponding file on disk)", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T10:00:00Z",
+        pages: {
+          "page-1": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:hash1",
+            slug: "existing-page",
+            filePath: "docs/existing-page.md",
+          },
+          "page-2": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:hash2",
+            slug: "deleted-page",
+            filePath: "docs/deleted-page.md",
+          },
+        },
+      };
+      const files = [
+        createMarkdownFileInfo("existing-page", "sha256:hash1"),
+        // deleted-page is missing from disk
+      ];
+
+      const result = detectGitChanges(state, files);
+
+      expect(result.deleted).toHaveLength(1);
+      expect(result.deleted[0]).toBe("page-2");
+    });
+
+    it("handles mixed scenario: new, changed, unchanged, and deleted", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T10:00:00Z",
+        pages: {
+          "page-unchanged": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:unchanged",
+            slug: "unchanged",
+            filePath: "docs/unchanged.md",
+          },
+          "page-changed": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:oldcontent",
+            slug: "changed",
+            filePath: "docs/changed.md",
+          },
+          "page-deleted": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:deleted",
+            slug: "deleted",
+            filePath: "docs/deleted.md",
+          },
+        },
+      };
+
+      const files = [
+        createMarkdownFileInfo("unchanged", "sha256:unchanged"),
+        createMarkdownFileInfo("changed", "sha256:newcontent"),
+        createMarkdownFileInfo("new-page", "sha256:brand-new"),
+        // deleted is missing
+      ];
+
+      const result = detectGitChanges(state, files);
+
+      expect(result.unchanged).toHaveLength(1);
+      expect(result.unchanged).toContain("unchanged");
+
+      expect(result.changed).toHaveLength(2);
+      const changedSlugs = result.changed.map((f) => f.slug).sort();
+      expect(changedSlugs).toEqual(["changed", "new-page"]);
+
+      expect(result.deleted).toHaveLength(1);
+      expect(result.deleted).toContain("page-deleted");
+    });
+
+    it("handles empty files array", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T10:00:00Z",
+        pages: {
+          "page-1": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:hash",
+            slug: "some-page",
+            filePath: "docs/some-page.md",
+          },
+        },
+      };
+      const files: MarkdownFileInfo[] = [];
+
+      const result = detectGitChanges(state, files);
+
+      expect(result.changed).toHaveLength(0);
+      expect(result.unchanged).toHaveLength(0);
+      expect(result.deleted).toHaveLength(1);
+      expect(result.deleted[0]).toBe("page-1");
+    });
+
+    it("handles empty state and empty files", () => {
+      const state = createEmptyState();
+      const files: MarkdownFileInfo[] = [];
+
+      const result = detectGitChanges(state, files);
+
+      expect(result.changed).toHaveLength(0);
+      expect(result.unchanged).toHaveLength(0);
+      expect(result.deleted).toHaveLength(0);
+    });
+  });
+
+  describe("findPageBySlug", () => {
+    it("returns correct entry when slug exists", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T12:00:00Z",
+        pages: {
+          "page-abc": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:abc",
+            slug: "getting-started",
+            filePath: "docs/getting-started.md",
+          },
+          "page-def": {
+            notionLastEdited: "2026-02-06T11:00:00Z",
+            gitContentHash: "sha256:def",
+            slug: "installation",
+            filePath: "docs/installation.md",
+          },
+        },
+      };
+
+      const result = findPageBySlug(state, "getting-started");
+
+      expect(result).not.toBeNull();
+      expect(result!.pageId).toBe("page-abc");
+      expect(result!.entry.slug).toBe("getting-started");
+      expect(result!.entry.gitContentHash).toBe("sha256:abc");
+    });
+
+    it("returns correct entry for second page by slug", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T12:00:00Z",
+        pages: {
+          "page-abc": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:abc",
+            slug: "getting-started",
+            filePath: "docs/getting-started.md",
+          },
+          "page-def": {
+            notionLastEdited: "2026-02-06T11:00:00Z",
+            gitContentHash: "sha256:def",
+            slug: "installation",
+            filePath: "docs/installation.md",
+          },
+        },
+      };
+
+      const result = findPageBySlug(state, "installation");
+
+      expect(result).not.toBeNull();
+      expect(result!.pageId).toBe("page-def");
+      expect(result!.entry.slug).toBe("installation");
+    });
+
+    it("returns null when slug does not exist", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T12:00:00Z",
+        pages: {
+          "page-abc": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:abc",
+            slug: "getting-started",
+            filePath: "docs/getting-started.md",
+          },
+        },
+      };
+
+      const result = findPageBySlug(state, "nonexistent-slug");
+
+      expect(result).toBeNull();
+    });
+
+    it("returns null for empty state", () => {
+      const state = createEmptyState();
+
+      const result = findPageBySlug(state, "any-slug");
+
+      expect(result).toBeNull();
+    });
+
+    it("handles slug with special characters", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T12:00:00Z",
+        pages: {
+          "page-123": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:special",
+            slug: "my-page-v2-beta",
+            filePath: "docs/my-page-v2-beta.md",
+          },
+        },
+      };
+
+      const result = findPageBySlug(state, "my-page-v2-beta");
+
+      expect(result).not.toBeNull();
+      expect(result!.pageId).toBe("page-123");
+    });
+  });
+
+  describe("detectConflicts", () => {
+    /**
+     * Helper to create a NotionPage for testing.
+     */
+    function createTestPage(id: string, lastEditedTime: string): NotionPage {
+      return mockNotionPage({
+        id,
+        lastEditedTime,
+      }) as unknown as NotionPage;
+    }
+
+    /**
+     * Helper to create a MarkdownFileInfo for testing.
+     */
+    function createMarkdownFileInfo(
+      slug: string,
+      contentHash: string,
+      lastModified: string
+    ): MarkdownFileInfo {
+      return {
+        filePath: `docs/${slug}.md`,
+        slug,
+        content: `# ${slug}\n\nSome content.`,
+        contentHash,
+        lastModified,
+      };
+    }
+
+    it("returns empty array when no pages changed on both sides", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T10:00:00Z",
+        pages: {
+          "page-1": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:abc",
+            slug: "my-page",
+            filePath: "docs/my-page.md",
+          },
+        },
+      };
+
+      const notionChanges = { changed: [] as NotionPage[] };
+      const gitChanges = { changed: [] as MarkdownFileInfo[] };
+
+      const conflicts = detectConflicts(notionChanges, gitChanges, state);
+
+      expect(conflicts).toHaveLength(0);
+    });
+
+    it("returns empty array when page changed on Notion side only", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T10:00:00Z",
+        pages: {
+          "page-1": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:abc",
+            slug: "my-page",
+            filePath: "docs/my-page.md",
+          },
+        },
+      };
+
+      const notionChanges = {
+        changed: [createTestPage("page-1", "2026-02-06T12:00:00Z")],
+      };
+      const gitChanges = { changed: [] as MarkdownFileInfo[] };
+
+      const conflicts = detectConflicts(notionChanges, gitChanges, state);
+
+      expect(conflicts).toHaveLength(0);
+    });
+
+    it("returns empty array when page changed on Git side only", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T10:00:00Z",
+        pages: {
+          "page-1": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:old",
+            slug: "my-page",
+            filePath: "docs/my-page.md",
+          },
+        },
+      };
+
+      const notionChanges = { changed: [] as NotionPage[] };
+      const gitChanges = {
+        changed: [createMarkdownFileInfo("my-page", "sha256:new", "2026-02-06T12:00:00Z")],
+      };
+
+      const conflicts = detectConflicts(notionChanges, gitChanges, state);
+
+      expect(conflicts).toHaveLength(0);
+    });
+
+    it("detects conflict when same page changed on both sides", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T10:00:00Z",
+        pages: {
+          "page-1": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:old",
+            slug: "my-page",
+            filePath: "docs/my-page.md",
+          },
+        },
+      };
+
+      const notionChanges = {
+        changed: [createTestPage("page-1", "2026-02-06T14:00:00Z")],
+      };
+      const gitChanges = {
+        changed: [createMarkdownFileInfo("my-page", "sha256:new", "2026-02-06T12:00:00Z")],
+      };
+
+      const conflicts = detectConflicts(notionChanges, gitChanges, state);
+
+      expect(conflicts).toHaveLength(1);
+      expect(conflicts[0].pageId).toBe("page-1");
+      expect(conflicts[0].slug).toBe("my-page");
+      expect(conflicts[0].notionEditedAt).toBe("2026-02-06T14:00:00Z");
+      expect(conflicts[0].gitEditedAt).toBe("2026-02-06T12:00:00Z");
+      expect(conflicts[0].resolution).toBe("latest-wins");
+      expect(conflicts[0].winner).toBe("notion"); // Notion is newer
+    });
+
+    it("sets winner to git when Git timestamp is newer", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T10:00:00Z",
+        pages: {
+          "page-1": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:old",
+            slug: "my-page",
+            filePath: "docs/my-page.md",
+          },
+        },
+      };
+
+      const notionChanges = {
+        changed: [createTestPage("page-1", "2026-02-06T12:00:00Z")],
+      };
+      const gitChanges = {
+        changed: [createMarkdownFileInfo("my-page", "sha256:new", "2026-02-06T14:00:00Z")],
+      };
+
+      const conflicts = detectConflicts(notionChanges, gitChanges, state);
+
+      expect(conflicts).toHaveLength(1);
+      expect(conflicts[0].winner).toBe("git"); // Git is newer
+    });
+
+    it("detects multiple conflicts correctly", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T10:00:00Z",
+        pages: {
+          "page-1": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:old1",
+            slug: "page-one",
+            filePath: "docs/page-one.md",
+          },
+          "page-2": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:old2",
+            slug: "page-two",
+            filePath: "docs/page-two.md",
+          },
+          "page-3": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:old3",
+            slug: "no-conflict",
+            filePath: "docs/no-conflict.md",
+          },
+        },
+      };
+
+      const notionChanges = {
+        changed: [
+          createTestPage("page-1", "2026-02-06T14:00:00Z"),
+          createTestPage("page-2", "2026-02-06T12:00:00Z"),
+          // page-3 not changed on Notion
+        ],
+      };
+      const gitChanges = {
+        changed: [
+          createMarkdownFileInfo("page-one", "sha256:new1", "2026-02-06T13:00:00Z"),
+          createMarkdownFileInfo("page-two", "sha256:new2", "2026-02-06T14:00:00Z"),
+          // no-conflict changed only on Git
+          createMarkdownFileInfo("no-conflict", "sha256:new3", "2026-02-06T12:00:00Z"),
+        ],
+      };
+
+      const conflicts = detectConflicts(notionChanges, gitChanges, state);
+
+      expect(conflicts).toHaveLength(2);
+
+      const conflict1 = conflicts.find((c) => c.slug === "page-one");
+      expect(conflict1).toBeDefined();
+      expect(conflict1!.winner).toBe("notion"); // 14:00 > 13:00
+
+      const conflict2 = conflicts.find((c) => c.slug === "page-two");
+      expect(conflict2).toBeDefined();
+      expect(conflict2!.winner).toBe("git"); // 14:00 > 12:00
+    });
+
+    it("ignores new pages on Notion side (not in state)", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T10:00:00Z",
+        pages: {}, // empty state
+      };
+
+      const notionChanges = {
+        changed: [createTestPage("new-page", "2026-02-06T14:00:00Z")],
+      };
+      const gitChanges = {
+        changed: [createMarkdownFileInfo("new-page", "sha256:new", "2026-02-06T12:00:00Z")],
+      };
+
+      const conflicts = detectConflicts(notionChanges, gitChanges, state);
+
+      // Can't conflict because "new-page" is not in state (new on Notion side)
+      expect(conflicts).toHaveLength(0);
+    });
+
+    it("ignores changed pages with non-matching slugs", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T10:00:00Z",
+        pages: {
+          "page-1": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:old",
+            slug: "notion-page",
+            filePath: "docs/notion-page.md",
+          },
+        },
+      };
+
+      const notionChanges = {
+        changed: [createTestPage("page-1", "2026-02-06T14:00:00Z")],
+      };
+      const gitChanges = {
+        // Different slug, so no conflict
+        changed: [createMarkdownFileInfo("different-page", "sha256:new", "2026-02-06T12:00:00Z")],
+      };
+
+      const conflicts = detectConflicts(notionChanges, gitChanges, state);
+
+      expect(conflicts).toHaveLength(0);
+    });
+
+    it("handles equal timestamps correctly (Notion wins ties)", () => {
+      const state: SyncStateFile = {
+        version: 1,
+        databaseId: "db-123",
+        dataSourceId: "ds-456",
+        lastSyncTime: "2026-02-06T10:00:00Z",
+        pages: {
+          "page-1": {
+            notionLastEdited: "2026-02-06T10:00:00Z",
+            gitContentHash: "sha256:old",
+            slug: "my-page",
+            filePath: "docs/my-page.md",
+          },
+        },
+      };
+
+      const timestamp = "2026-02-06T12:00:00Z";
+      const notionChanges = {
+        changed: [createTestPage("page-1", timestamp)],
+      };
+      const gitChanges = {
+        changed: [createMarkdownFileInfo("my-page", "sha256:new", timestamp)],
+      };
+
+      const conflicts = detectConflicts(notionChanges, gitChanges, state);
+
+      expect(conflicts).toHaveLength(1);
+      expect(conflicts[0].winner).toBe("notion"); // Notion wins ties (>=)
     });
   });
 });
