@@ -100,7 +100,7 @@
 
 ### Implementation
 
-- [ ] T007 [US2] Create `src/converter/md-to-blocks.ts`:
+- [x] T007 [US2] Create `src/converter/md-to-blocks.ts`:
   - `mdastToNotionBlocks(nodes: Content[]): NotionBlockPayload[]` — Main entry point. Iterate over block-level Content nodes, dispatch to type-specific handlers. Return flat array of block payloads.
   - Handlers per node type:
     - `heading` (depth 1-3) → `heading_1`/`heading_2`/`heading_3` with rich_text from `phrasesToRichText(node.children)`
