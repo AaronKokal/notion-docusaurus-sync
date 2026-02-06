@@ -26,9 +26,9 @@
 **Purpose**: Add dependencies, create directory structure, extend existing types
 
 - [x] T001 Install `yaml` package: `npm install yaml`. Create directories: `src/notion/`, `src/converter/`. Verify build still works with `npm run build`.
-- [ ] T002 [P] Extend `src/types.ts` with sync state types matching ADR-008 state file format: `SyncStateFile` (version, databaseId, dataSourceId, lastSyncTime, pages map), `PageStateEntry` (notionLastEdited, gitContentHash, slug, filePath). Keep existing types untouched.
-- [ ] T003 [P] Create `src/notion/types.ts` — Re-export useful Notion SDK types and define helper types: `NotionPage` (page result from dataSources.query), `NotionBlock` (block from blocks.children.list), `NotionRichText` (rich text array element), `NotionProperty` (property value union). Use SDK types where possible, `as any` casts where SDK types lag behind v5 API.
-- [ ] T004 [P] Create `test/unit/` directory. Create a `test/helpers.ts` with mock factories: `mockNotionPage()`, `mockBlock(type, content)`, `mockRichText(text, annotations)` — these produce realistic Notion API response shapes for unit tests.
+- [x] T002 [P] Extend `src/types.ts` with sync state types matching ADR-008 state file format: `SyncStateFile` (version, databaseId, dataSourceId, lastSyncTime, pages map), `PageStateEntry` (notionLastEdited, gitContentHash, slug, filePath). Keep existing types untouched.
+- [x] T003 [P] Create `src/notion/types.ts` — Re-export useful Notion SDK types and define helper types: `NotionPage` (page result from dataSources.query), `NotionBlock` (block from blocks.children.list), `NotionRichText` (rich text array element), `NotionProperty` (property value union). Use SDK types where possible, `as any` casts where SDK types lag behind v5 API.
+- [x] T004 [P] Create `test/unit/` directory. Create a `test/helpers.ts` with mock factories: `mockNotionPage()`, `mockBlock(type, content)`, `mockRichText(text, annotations)` — these produce realistic Notion API response shapes for unit tests.
 
 **Checkpoint**: Project structure ready, types defined, test helpers available
 
