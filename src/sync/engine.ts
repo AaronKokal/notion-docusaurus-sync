@@ -17,13 +17,18 @@
  * - Given invalid config, clear error message is displayed
  */
 
-import type { SyncConfig, SyncResult, PageSyncResult, SyncError, PageStateEntry } from "../types.js";
+import type { SyncConfig, SyncResult, PageSyncResult, SyncError, PageStateEntry, ConflictRecord, MarkdownFileInfo } from "../types.js";
 import type { NotionPage, NotionPageProperty } from "../notion/types.js";
 import { NotionClientWrapper } from "../notion/client.js";
 import { blocksToMarkdown, type BlockWithChildren } from "../converter/blocks-to-md.js";
 import { propertiesToFrontmatter, frontmatterToYaml, richTextToPlainText } from "../converter/properties-to-fm.js";
-import { loadState, saveState, detectChanges, updatePageState, removePageState, computeContentHash } from "./state.js";
+import { frontmatterToProperties } from "../converter/fm-to-properties.js";
+import { mdastToNotionBlocks } from "../converter/md-to-blocks.js";
+import { parseMarkdownFile } from "../parser/markdown-parser.js";
+import { loadState, saveState, detectChanges, updatePageState, removePageState, computeContentHash, detectGitChanges, findPageBySlug, detectConflicts } from "./state.js";
 import { writeMarkdownFile, deleteMarkdownFile, slugFromTitle } from "./file-writer.js";
+import { scanMarkdownFiles } from "./file-reader.js";
+import { NotionWriter } from "./notion-writer.js";
 
 /**
  * Options for the sync operation.
@@ -401,4 +406,312 @@ function getPageSlug(page: NotionPage, statusPropertyName: string): string | nul
   }
 
   return null;
+}
+
+// =============================================================================
+// Git → Notion Sync
+// =============================================================================
+
+/**
+ * Internal context for Git → Notion sync.
+ */
+interface GitToNotionContext {
+  client: NotionClientWrapper;
+  writer: NotionWriter;
+  config: SyncConfig;
+  options: SyncOptions;
+  results: PageSyncResult[];
+  errors: SyncError[];
+}
+
+/**
+ * Syncs markdown files from Git to Notion.
+ *
+ * This is the reverse direction sync that:
+ * 1. Scans the output directory for markdown files
+ * 2. Loads sync state
+ * 3. Detects which files have changed since last sync
+ * 4. For each changed file: parses markdown, converts to Notion blocks/properties, creates/updates page
+ * 5. Archives pages for deleted files
+ * 6. Saves updated sync state
+ * 7. Returns a summary of the sync operation
+ *
+ * @param config - The sync configuration
+ * @param options - Optional sync options (fullSync, quiet)
+ * @returns Promise<SyncResult> with gitToNotion results
+ *
+ * @example
+ * ```ts
+ * const result = await syncGitToNotion({
+ *   notionToken: process.env.NOTION_TOKEN!,
+ *   databaseId: "abc123...",
+ *   outputDir: "./docs",
+ *   stateFile: "./.notion-sync-state.json",
+ *   // ... other config
+ * });
+ *
+ * console.log(`Pushed ${result.gitToNotion.length} pages to Notion`);
+ * ```
+ */
+export async function syncGitToNotion(
+  config: SyncConfig,
+  options: SyncOptions = {}
+): Promise<SyncResult> {
+  const { quiet = false } = options;
+
+  // Initialize result structures
+  const results: PageSyncResult[] = [];
+  const errors: SyncError[] = [];
+
+  // Create Notion client
+  const client = new NotionClientWrapper({ token: config.notionToken });
+
+  try {
+    // Step 1: Resolve data source ID
+    if (!quiet) console.log("[push] Resolving data source ID...");
+    const dataSourceId = await client.getDataSourceId(config.databaseId);
+
+    // Create Notion writer
+    const writer = new NotionWriter(client, config.databaseId);
+
+    // Create sync context
+    const ctx: GitToNotionContext = { client, writer, config, options, results, errors };
+
+    // Step 2: Load sync state
+    if (!quiet) console.log("[push] Loading sync state...");
+    const state = await loadState(config.stateFile);
+
+    // Update state with database/data source IDs if this is first sync
+    if (!state.databaseId) state.databaseId = config.databaseId;
+    if (!state.dataSourceId) state.dataSourceId = dataSourceId;
+
+    // Step 3: Scan output directory for markdown files
+    if (!quiet) console.log("[push] Scanning output directory for markdown files...");
+    const files = await scanMarkdownFiles(config.outputDir);
+    if (!quiet) console.log(`[push] Found ${files.length} markdown files`);
+
+    // Step 4: Detect changes (or sync all in full sync mode)
+    let filesToSync: MarkdownFileInfo[];
+    let unchangedSlugs: string[];
+    let deletedPageIds: string[];
+
+    if (options.fullSync) {
+      if (!quiet) console.log("[push] Full sync mode — pushing all files");
+      filesToSync = files;
+      unchangedSlugs = [];
+      // Still detect deleted files even in full sync
+      const detection = detectGitChanges(state, files);
+      deletedPageIds = detection.deleted;
+    } else {
+      const detection = detectGitChanges(state, files);
+      filesToSync = detection.changed;
+      unchangedSlugs = detection.unchanged;
+      deletedPageIds = detection.deleted;
+      if (!quiet) {
+        console.log(`[push] Changes detected: ${filesToSync.length} to push, ${unchangedSlugs.length} unchanged, ${deletedPageIds.length} deleted`);
+      }
+    }
+
+    // Step 5: Push each changed file
+    for (const file of filesToSync) {
+      await pushSingleFile(ctx, file, state);
+    }
+
+    // Record skipped (unchanged) files
+    for (const slug of unchangedSlugs) {
+      const existing = findPageBySlug(state, slug);
+      if (existing) {
+        results.push({
+          pageId: existing.pageId,
+          slug,
+          title: "",
+          direction: "git-to-notion",
+          action: "skipped",
+        });
+      }
+    }
+
+    // Step 6: Handle deleted files (archive pages)
+    for (const pageId of deletedPageIds) {
+      await handleDeletedFile(ctx, pageId, state);
+    }
+
+    // Step 7: Update sync time and save state
+    state.lastSyncTime = new Date().toISOString();
+    await saveState(config.stateFile, state);
+
+    if (!quiet) {
+      const created = results.filter((r) => r.action === "created").length;
+      const updated = results.filter((r) => r.action === "updated").length;
+      const archived = results.filter((r) => r.action === "deleted").length;
+      const skipped = results.filter((r) => r.action === "skipped").length;
+      console.log(`[push] Complete: ${created} created, ${updated} updated, ${archived} archived, ${skipped} skipped`);
+      if (errors.length > 0) {
+        console.log(`[push] ${errors.length} errors occurred`);
+      }
+    }
+  } catch (error) {
+    // Top-level error (e.g., failed to connect, invalid database ID)
+    errors.push({
+      message: error instanceof Error ? error.message : String(error),
+      cause: error,
+    });
+    if (!quiet) {
+      console.error("[push] Fatal error:", error instanceof Error ? error.message : error);
+    }
+  }
+
+  return {
+    notionToGit: [], // Not handled in this direction
+    gitToNotion: results,
+    conflicts: [], // Conflict detection is for bidirectional sync
+    errors,
+  };
+}
+
+/**
+ * Pushes a single markdown file to Notion.
+ */
+async function pushSingleFile(
+  ctx: GitToNotionContext,
+  file: MarkdownFileInfo,
+  state: import("../types.js").SyncStateFile
+): Promise<void> {
+  const { writer, config, options, results, errors } = ctx;
+  const { quiet = false } = options;
+
+  try {
+    if (!quiet) console.log(`[push] Processing: ${file.filePath}`);
+
+    // Step 1: Parse markdown file
+    const { frontmatter, ast } = parseMarkdownFile(file.content);
+
+    // Step 2: Get title from frontmatter or derive from slug
+    const title = typeof frontmatter.title === "string"
+      ? frontmatter.title
+      : file.slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+    // Step 3: Map frontmatter to Notion properties
+    const properties = frontmatterToProperties(frontmatter, {
+      statusProperty: config.statusProperty,
+      publishedStatus: config.publishedStatus,
+    });
+
+    // Ensure the page has a title
+    if (!properties["Name"]) {
+      properties["Name"] = { title: [{ text: { content: title } }] };
+    }
+
+    // Set status to published (since it's being pushed from Git)
+    if (!properties["Status"] && config.statusProperty && config.publishedStatus) {
+      properties[config.statusProperty] = { select: { name: config.publishedStatus } };
+    }
+
+    // Ensure slug is set
+    if (!properties["Slug"]) {
+      properties["Slug"] = { rich_text: [{ text: { content: file.slug } }] };
+    }
+
+    // Step 4: Convert mdast to Notion blocks
+    const blocks = mdastToNotionBlocks(ast.children);
+
+    // Step 5: Look up existing page by slug
+    const existing = findPageBySlug(state, file.slug);
+
+    let pageId: string;
+    let action: "created" | "updated";
+
+    if (existing) {
+      // Update existing page
+      pageId = existing.pageId;
+      action = "updated";
+
+      // Update properties
+      await writer.updateProperties(pageId, properties);
+
+      // Replace page content
+      await writer.replacePageContent(pageId, blocks);
+
+      if (!quiet) console.log(`[push] Updated: ${file.filePath} (page ${pageId})`);
+    } else {
+      // Create new page
+      pageId = await writer.createPage(properties, blocks);
+      action = "created";
+
+      if (!quiet) console.log(`[push] Created: ${file.filePath} (page ${pageId})`);
+    }
+
+    // Step 6: Update sync state
+    const entry: PageStateEntry = {
+      notionLastEdited: new Date().toISOString(), // Will be updated on next pull
+      gitContentHash: file.contentHash,
+      slug: file.slug,
+      filePath: file.filePath,
+      gitLastModified: file.lastModified,
+      notionPageId: pageId,
+    };
+    updatePageState(state, pageId, entry);
+
+    // Record result
+    results.push({
+      pageId,
+      slug: file.slug,
+      title,
+      direction: "git-to-notion",
+      action,
+    });
+  } catch (error) {
+    errors.push({
+      slug: file.slug,
+      message: `Failed to push file "${file.filePath}": ${error instanceof Error ? error.message : String(error)}`,
+      cause: error,
+    });
+    if (!quiet) {
+      console.error(`[push] Error pushing "${file.filePath}":`, error instanceof Error ? error.message : error);
+    }
+  }
+}
+
+/**
+ * Handles a deleted file: archives the corresponding Notion page.
+ */
+async function handleDeletedFile(
+  ctx: GitToNotionContext,
+  pageId: string,
+  state: import("../types.js").SyncStateFile
+): Promise<void> {
+  const { writer, options, results, errors } = ctx;
+  const { quiet = false } = options;
+
+  const entry = state.pages[pageId];
+  if (!entry) return;
+
+  try {
+    // Archive the Notion page
+    await writer.archivePage(pageId);
+
+    // Remove from state
+    removePageState(state, pageId);
+
+    // Record result
+    results.push({
+      pageId,
+      slug: entry.slug,
+      title: "",
+      direction: "git-to-notion",
+      action: "deleted", // "deleted" here means archived in Notion
+    });
+
+    if (!quiet) console.log(`[push] Archived: ${entry.filePath} (page ${pageId})`);
+  } catch (error) {
+    errors.push({
+      pageId,
+      slug: entry.slug,
+      message: `Failed to archive page for deleted file "${entry.filePath}": ${error instanceof Error ? error.message : String(error)}`,
+      cause: error,
+    });
+    if (!quiet) {
+      console.error(`[push] Error archiving page for "${entry.filePath}":`, error instanceof Error ? error.message : error);
+    }
+  }
 }

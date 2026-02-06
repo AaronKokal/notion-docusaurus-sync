@@ -13,11 +13,11 @@ describe("smoke test", () => {
     expect(typeof syncNotionToGit).toBe("function");
   });
 
-  it("syncGitToNotion stub throws not-implemented error", async () => {
+  it("syncGitToNotion is exported and is a function", async () => {
     const { syncGitToNotion } = await import("../src/sync/git-to-notion.js");
 
-    // syncGitToNotion is still a stub
-    await expect(syncGitToNotion({} as any)).rejects.toThrow("Not yet implemented");
+    // syncGitToNotion is now fully implemented (no longer throws "Not yet implemented")
+    expect(typeof syncGitToNotion).toBe("function");
   });
 
   it("index exports all public API modules", async () => {
