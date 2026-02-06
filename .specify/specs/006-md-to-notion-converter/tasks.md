@@ -188,7 +188,7 @@
 
 ### Implementation
 
-- [ ] T011 [US5] Create `src/sync/file-reader.ts`:
+- [x] T011 [US5] Create `src/sync/file-reader.ts`:
   - `scanMarkdownFiles(outputDir: string): Promise<MarkdownFileInfo[]>` — Scan directory for `.md` files (non-recursive for now). For each file: read content, compute content hash (reuse `computeContentHash` from state.ts), get file mtime via `fs.stat`. Return array of `MarkdownFileInfo` objects.
   - `MarkdownFileInfo`: `{ filePath: string, slug: string, content: string, contentHash: string, lastModified: string }`
   - Slug derived from filename: strip `.md` extension, keep as-is (already kebab-case from file-writer)
