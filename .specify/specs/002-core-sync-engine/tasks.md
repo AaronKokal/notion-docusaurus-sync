@@ -70,14 +70,14 @@
 
 ### Implementation
 
-- [ ] T007 [P] [US2] Create `src/converter/rich-text.ts` — `richTextToMarkdown(richTexts: NotionRichText[]): string`:
+- [x] T007 [P] [US2] Create `src/converter/rich-text.ts` — `richTextToMarkdown(richTexts: NotionRichText[]): string`:
   - Handle annotations: bold (`**`), italic (`*`), strikethrough (`~~`), code (`` ` ``), underline (ignored — no standard MD equivalent)
   - Handle links: `[text](url)`
   - Handle multiple annotations on same text (e.g., bold + italic = `***text***`)
   - Handle empty/null rich text arrays → empty string
   - Handle color annotations: skip (no MD equivalent, Docusaurus doesn't use them)
 
-- [ ] T008 [P] [US2] Create `test/unit/rich-text.test.ts` — Unit tests:
+- [x] T008 [P] [US2] Create `test/unit/rich-text.test.ts` — Unit tests:
   - Plain text, bold, italic, code, strikethrough, links
   - Combined annotations (bold + italic, bold + link)
   - Empty/null input
