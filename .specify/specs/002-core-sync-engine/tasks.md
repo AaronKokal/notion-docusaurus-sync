@@ -42,7 +42,7 @@
 
 ### Implementation
 
-- [ ] T005 [US1] Create `src/notion/client.ts` — `NotionClientWrapper` class:
+- [x] T005 [US1] Create `src/notion/client.ts` — `NotionClientWrapper` class:
   - Constructor takes `{ token: string }`, creates SDK `Client` instance internally
   - `getDataSourceId(databaseId: string): Promise<string>` — calls `databases.retrieve`, extracts `data_sources[0].id`, caches result
   - `queryPages(dataSourceId: string, filter?: object): Promise<NotionPage[]>` — calls `dataSources.query` with pagination (handles `has_more` + `start_cursor`), returns all pages
