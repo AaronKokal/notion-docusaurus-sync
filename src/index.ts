@@ -16,7 +16,7 @@
 export { syncNotionToGit, type SyncOptions } from "./sync/notion-to-git.js";
 
 /**
- * Stub for Git → Notion sync (to be implemented in spec 006)
+ * Sync function: Git (markdown files) → Notion
  */
 export { syncGitToNotion } from "./sync/git-to-notion.js";
 
@@ -64,6 +64,21 @@ export { frontmatterToProperties } from "./converter/fm-to-properties.js";
 // Import directly from "./converter/md-to-blocks.js" or "./converter/md-to-rich-text.js".
 
 // =============================================================================
+// Markdown Parser (for custom pipelines)
+// =============================================================================
+
+/**
+ * Markdown parser for Docusaurus files
+ */
+export {
+  parseMarkdownFile,
+  parseMarkdown,
+  extractFrontmatter,
+  type ParsedMarkdownFile,
+  type FrontmatterExtractionResult,
+} from "./parser/markdown-parser.js";
+
+// =============================================================================
 // Sync State Management (for advanced use cases)
 // =============================================================================
 
@@ -76,7 +91,12 @@ export {
   removePageState,
   computeContentHash,
   STATE_FILE_VERSION,
+  // Git → Notion change detection (spec 006)
+  detectGitChanges,
+  findPageBySlug,
+  detectConflicts,
   type ChangeDetectionResult,
+  type GitChangeDetectionResult,
 } from "./sync/state.js";
 
 // =============================================================================
