@@ -74,3 +74,39 @@ export interface PageState {
   gitLastEdited: string;
   contentHash: string;
 }
+
+// =============================================================================
+// Sync State File Types (ADR-008)
+// =============================================================================
+
+/**
+ * Entry for a single page in the sync state file.
+ * Tracks the page's sync status for incremental sync detection.
+ */
+export interface PageStateEntry {
+  /** ISO timestamp of the page's last_edited_time in Notion */
+  notionLastEdited: string;
+  /** Hash of the markdown content (e.g., "sha256:abc123...") for change detection */
+  gitContentHash: string;
+  /** The page's slug used for filename generation */
+  slug: string;
+  /** Relative path to the output markdown file (e.g., "docs/getting-started.md") */
+  filePath: string;
+}
+
+/**
+ * Sync state file format per ADR-008.
+ * Persisted to disk to enable incremental sync.
+ */
+export interface SyncStateFile {
+  /** Schema version for future migrations */
+  version: number;
+  /** The Notion database ID being synced */
+  databaseId: string;
+  /** The resolved data source ID (SDK v5 dataSources API) */
+  dataSourceId: string;
+  /** ISO timestamp of the last successful sync */
+  lastSyncTime: string;
+  /** Map of Notion page ID to its sync state entry */
+  pages: Record<string, PageStateEntry>;
+}

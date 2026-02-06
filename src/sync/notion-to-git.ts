@@ -1,11 +1,12 @@
-import type { SyncConfig, PageSyncResult } from "../types.js";
-
 /**
- * Sync pages from Notion to Git (markdown files).
- * Stub — will be implemented in specs 002-005.
+ * Notion to Git sync — public API re-export.
+ *
+ * This module provides the public `syncNotionToGit` function that users call.
+ * The actual implementation lives in `engine.ts`. This file exists to:
+ * 1. Provide a stable import path (`sync/notion-to-git`)
+ * 2. Allow future wrapper logic if needed (e.g., telemetry, logging)
+ * 3. Keep the public API surface minimal
  */
-export async function syncNotionToGit(
-  _config: SyncConfig,
-): Promise<PageSyncResult[]> {
-  throw new Error("Not yet implemented — see spec 002");
-}
+
+// Re-export the sync function and options type from the engine
+export { syncNotionToGit, type SyncOptions } from "./engine.js";
