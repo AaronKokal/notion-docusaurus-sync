@@ -125,7 +125,7 @@
 
 ### Implementation
 
-- [ ] T011 [P] [US3] Create `src/converter/properties-to-fm.ts`:
+- [x] T011 [P] [US3] Create `src/converter/properties-to-fm.ts`:
   - `propertiesToFrontmatter(properties: Record<string, NotionProperty>, config: { statusProperty: string, publishedStatus: string }): { frontmatter: Record<string, unknown>, shouldPublish: boolean }`
   - Property type handlers:
     - `title` → `title: "Page Name"`
@@ -141,7 +141,7 @@
   - `frontmatterToYaml(fm: Record<string, unknown>): string` — serialize to YAML string using `yaml` package, wrapped in `---` delimiters
   - Skip null/empty property values
 
-- [ ] T012 [P] [US3] Create `test/unit/properties-to-fm.test.ts` — Unit tests:
+- [x] T012 [P] [US3] Create `test/unit/properties-to-fm.test.ts` — Unit tests:
   - Test each property type mapping (all 8 acceptance scenarios from spec)
   - Test `shouldPublish` filtering: Published → true, Draft → false, Archived → false
   - Test empty/null values are skipped
