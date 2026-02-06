@@ -16,9 +16,14 @@
 export { syncNotionToGit, type SyncOptions } from "./sync/notion-to-git.js";
 
 /**
- * Stub for Git → Notion sync (to be implemented in spec 006)
+ * Sync function: Git (markdown files) → Notion
  */
 export { syncGitToNotion } from "./sync/git-to-notion.js";
+
+/**
+ * Bidirectional sync: handles both directions with conflict resolution
+ */
+export { syncBidirectional } from "./sync/bidirectional.js";
 
 // =============================================================================
 // Notion Client Wrapper (for advanced use cases)
@@ -55,6 +60,29 @@ export {
  */
 export { richTextToMarkdown } from "./converter/rich-text.js";
 
+/**
+ * Markdown-to-Notion converters (Git → Notion direction)
+ */
+export { frontmatterToProperties } from "./converter/fm-to-properties.js";
+// Note: mdastToNotionBlocks and phrasesToRichText are not exported from index.ts
+// due to mdast directive type compatibility issues with TypeScript declarations.
+// Import directly from "./converter/md-to-blocks.js" or "./converter/md-to-rich-text.js".
+
+// =============================================================================
+// Markdown Parser (for custom pipelines)
+// =============================================================================
+
+/**
+ * Markdown parser for Docusaurus files
+ */
+export {
+  parseMarkdownFile,
+  parseMarkdown,
+  extractFrontmatter,
+  type ParsedMarkdownFile,
+  type FrontmatterExtractionResult,
+} from "./parser/markdown-parser.js";
+
 // =============================================================================
 // Sync State Management (for advanced use cases)
 // =============================================================================
@@ -68,7 +96,12 @@ export {
   removePageState,
   computeContentHash,
   STATE_FILE_VERSION,
+  // Git → Notion change detection (spec 006)
+  detectGitChanges,
+  findPageBySlug,
+  detectConflicts,
   type ChangeDetectionResult,
+  type GitChangeDetectionResult,
 } from "./sync/state.js";
 
 // =============================================================================
@@ -80,6 +113,16 @@ export {
   deleteMarkdownFile,
   slugFromTitle,
 } from "./sync/file-writer.js";
+
+/**
+ * File Reader for Git → Notion sync
+ */
+export { scanMarkdownFiles } from "./sync/file-reader.js";
+
+/**
+ * Notion Page Writer for Git → Notion sync
+ */
+export { NotionWriter } from "./sync/notion-writer.js";
 
 // =============================================================================
 // Core Types
@@ -99,6 +142,10 @@ export type {
   PageState,
   SyncStateFile,
   PageStateEntry,
+  // Git → Notion types (spec 006)
+  MarkdownFileInfo,
+  NotionBlockPayload,
+  FrontmatterToPropertiesConfig,
 } from "./types.js";
 
 // =============================================================================

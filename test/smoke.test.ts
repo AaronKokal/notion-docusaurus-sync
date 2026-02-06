@@ -13,11 +13,18 @@ describe("smoke test", () => {
     expect(typeof syncNotionToGit).toBe("function");
   });
 
-  it("syncGitToNotion stub throws not-implemented error", async () => {
+  it("syncGitToNotion is exported and is a function", async () => {
     const { syncGitToNotion } = await import("../src/sync/git-to-notion.js");
 
-    // syncGitToNotion is still a stub
-    await expect(syncGitToNotion({} as any)).rejects.toThrow("Not yet implemented");
+    // syncGitToNotion is now fully implemented (no longer throws "Not yet implemented")
+    expect(typeof syncGitToNotion).toBe("function");
+  });
+
+  it("syncBidirectional is exported and is a function", async () => {
+    const { syncBidirectional } = await import("../src/sync/bidirectional.js");
+
+    // syncBidirectional handles both sync directions with conflict resolution
+    expect(typeof syncBidirectional).toBe("function");
   });
 
   it("index exports all public API modules", async () => {
@@ -26,6 +33,7 @@ describe("smoke test", () => {
     // Core sync functions
     expect(typeof index.syncNotionToGit).toBe("function");
     expect(typeof index.syncGitToNotion).toBe("function");
+    expect(typeof index.syncBidirectional).toBe("function");
 
     // Notion client wrapper
     expect(typeof index.NotionClientWrapper).toBe("function");
