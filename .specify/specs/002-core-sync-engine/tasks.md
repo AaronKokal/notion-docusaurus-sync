@@ -83,7 +83,7 @@
   - Empty/null input
   - Multiple rich text segments concatenated
 
-- [ ] T009 [US2] Create `src/converter/blocks-to-md.ts` — `blocksToMarkdown(blocks: NotionBlock[]): string`:
+- [x] T009 [US2] Create `src/converter/blocks-to-md.ts` — `blocksToMarkdown(blocks: NotionBlock[]): string`:
   - Handle each block type as a function: `paragraph`, `heading_1/2/3`, `bulleted_list_item`, `numbered_list_item`, `code`, `quote`, `callout`, `divider`, `table`, `toggle`, `image`, `to_do`, `bookmark`
   - **paragraph**: Use `richTextToMarkdown` for content, blank line after
   - **heading_1/2/3**: `#`/`##`/`###` + richTextToMarkdown
