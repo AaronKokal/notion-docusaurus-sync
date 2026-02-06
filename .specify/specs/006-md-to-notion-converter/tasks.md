@@ -45,7 +45,7 @@
   - `parseMarkdown(body: string): Root` — Set up unified pipeline: `unified().use(remarkParse).use(remarkGfm).use(remarkDirective).parse(body)`. Returns mdast Root node.
   - `parseMarkdownFile(content: string): { frontmatter: Record<string, unknown>, ast: Root }` — Combines both: extract frontmatter, parse body, return both.
 
-- [ ] T004 [US1] Create `test/unit/markdown-parser.test.ts` — Unit tests:
+- [x] T004 [US1] Create `test/unit/markdown-parser.test.ts` — Unit tests:
   - Test frontmatter extraction with valid YAML
   - Test frontmatter extraction with no frontmatter → empty object
   - Test frontmatter extraction with empty frontmatter (`---\n---`)
