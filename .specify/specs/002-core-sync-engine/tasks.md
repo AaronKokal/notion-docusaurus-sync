@@ -267,7 +267,7 @@
 
 **Purpose**: Final checks, build verification, documentation
 
-- [ ] T021 Verify `npm run build` succeeds with all new code
+- [x] T021 Verify `npm run build` succeeds with all new code
 - [ ] T022 Verify `npm run test` passes all unit tests
 - [ ] T023 Run E2E test: `NOTION_TOKEN=<token> npm run test -- test/e2e/` — verify against live database
 - [ ] T024 Update `src/index.ts` with complete public API exports
