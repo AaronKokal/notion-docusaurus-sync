@@ -20,12 +20,20 @@ describe("smoke test", () => {
     expect(typeof syncGitToNotion).toBe("function");
   });
 
+  it("syncBidirectional is exported and is a function", async () => {
+    const { syncBidirectional } = await import("../src/sync/bidirectional.js");
+
+    // syncBidirectional handles both sync directions with conflict resolution
+    expect(typeof syncBidirectional).toBe("function");
+  });
+
   it("index exports all public API modules", async () => {
     const index = await import("../src/index.js");
 
     // Core sync functions
     expect(typeof index.syncNotionToGit).toBe("function");
     expect(typeof index.syncGitToNotion).toBe("function");
+    expect(typeof index.syncBidirectional).toBe("function");
 
     // Notion client wrapper
     expect(typeof index.NotionClientWrapper).toBe("function");

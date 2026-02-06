@@ -309,7 +309,7 @@
 
 ### Implementation
 
-- [ ] T020 [US7] Add bidirectional sync to `src/sync/engine.ts`:
+- [x] T020 [US7] Add bidirectional sync to `src/sync/engine.ts`:
   - Add `syncBidirectional(config: SyncConfig): Promise<SyncResult>` function:
     1. Load sync state
     2. Detect Notion-side changes (query pages, compare timestamps)

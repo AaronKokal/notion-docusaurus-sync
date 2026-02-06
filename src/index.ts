@@ -20,6 +20,11 @@ export { syncNotionToGit, type SyncOptions } from "./sync/notion-to-git.js";
  */
 export { syncGitToNotion } from "./sync/git-to-notion.js";
 
+/**
+ * Bidirectional sync: handles both directions with conflict resolution
+ */
+export { syncBidirectional } from "./sync/bidirectional.js";
+
 // =============================================================================
 // Notion Client Wrapper (for advanced use cases)
 // =============================================================================
