@@ -25,7 +25,7 @@
 
 **Purpose**: Install new packages, create directory structure, extend existing types
 
-- [ ] T001 Install remark/unified packages: `npm install unified remark-parse remark-gfm remark-directive unist-util-visit @types/mdast`. Create directory: `src/parser/`. Verify build still works with `npm run build`.
+- [x] T001 Install remark/unified packages: `npm install unified remark-parse remark-gfm remark-directive unist-util-visit @types/mdast`. Create directory: `src/parser/`. Verify build still works with `npm run build`.
 - [ ] T002 [P] Extend `src/types.ts` with Git→Notion types: Add `gitLastModified?: string` and `notionPageId?: string` fields to `PageStateEntry`. Add `MarkdownFileInfo` interface (filePath, slug, content, contentHash, lastModified). Add `NotionBlockPayload` type alias (use `any` for now — Notion SDK block request types are complex). Add `FrontmatterToPropertiesConfig` interface mirroring the reverse of `PropertyMapperConfig`.
 
 **Checkpoint**: Dependencies installed, types extended, build passes

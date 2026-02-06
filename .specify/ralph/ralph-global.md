@@ -30,7 +30,7 @@ should be updated with skill mappings.
 
 - Always read CLAUDE.md before starting work
 - Read the constitution at `.specify/memory/constitution.md` for project principles
-- Read the spec at `.specify/specs/002-core-sync-engine/spec.md` and plan at `plan.md` before implementing
+- Read the spec, plan, and tasks for the current spec being worked on
 - Commit after each successful task with message: "Ralph: T### - <description>"
 - Run `npm run build` after code changes to verify compilation
 - Run `npm run test` to verify unit tests pass
