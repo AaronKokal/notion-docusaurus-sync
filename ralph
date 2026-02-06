@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Ralph Wiggum Loop - Auto-generated entry point
+exec "/home/aaron/.local/Projects/personal-projects/notion-docusaurus-sync/.specify/ralph/bin/ralph" "$@"
