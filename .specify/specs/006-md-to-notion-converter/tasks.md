@@ -339,7 +339,7 @@
 
 ### Implementation
 
-- [ ] T022 [US6] Create `test/e2e/push.test.ts` — E2E test against live Notion test database:
+- [x] T022 [US6] Create `test/e2e/push.test.ts` — E2E test against live Notion test database:
   - Requires `NOTION_TOKEN` env var (skip if not available)
   - Create a temp markdown file with known frontmatter and content:
     ```
