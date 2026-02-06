@@ -232,7 +232,7 @@
 
 ### Implementation
 
-- [ ] T015 [US6] Extend `src/sync/state.ts`:
+- [x] T015 [US6] Extend `src/sync/state.ts`:
   - Add `detectGitChanges(state: SyncStateFile, files: MarkdownFileInfo[]): { changed: MarkdownFileInfo[], unchanged: string[], deleted: string[] }`:
     - `changed`: files where contentHash differs from `state.pages[pageId].gitContentHash`, or files with no matching page in state (new files matched by slug)
     - `unchanged`: slugs where content hash matches
