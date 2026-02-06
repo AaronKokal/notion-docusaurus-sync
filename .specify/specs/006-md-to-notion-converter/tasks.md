@@ -118,7 +118,7 @@
     - Unsupported types (`html` that isn't details, `definition`, `footnote`, etc.) → log warning, skip
   - `ADMONITION_TO_ICON` mapping (reverse of blocks-to-md.ts): `{ note: "📝", tip: "💡", info: "ℹ️", warning: "⚠️", danger: "🔥" }`
 
-- [ ] T008 [US2] Create `test/unit/md-to-blocks.test.ts` — Unit tests:
+- [x] T008 [US2] Create `test/unit/md-to-blocks.test.ts` — Unit tests:
   - Paragraph with formatted text → paragraph block with correct rich_text
   - Headings h1-h3 → heading_1/2/3 blocks
   - Code block with language → code block
