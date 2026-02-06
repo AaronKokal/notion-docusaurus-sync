@@ -201,7 +201,7 @@
   - Ignores non-.md files
   - Uses temp directory for test files
 
-- [ ] T013 [US5] Create `src/sync/notion-writer.ts` — `NotionWriter` class:
+- [x] T013 [US5] Create `src/sync/notion-writer.ts` — `NotionWriter` class:
   - Constructor takes `NotionClientWrapper` and `dataSourceId`
   - `createPage(databaseId: string, properties: Record<string, any>, blocks: any[]): Promise<string>` — Create page via `client.rawClient.pages.create(...)`. If blocks.length > 100, include first 100 in creation, then append rest via `appendBlocks`. Returns the new page ID.
   - `replacePageContent(pageId: string, blocks: any[]): Promise<void>` — Fetch all existing child blocks via `client.getPageBlocks(pageId)`. Delete each block via `client.rawClient.blocks.delete(blockId)`. Then append new blocks.
