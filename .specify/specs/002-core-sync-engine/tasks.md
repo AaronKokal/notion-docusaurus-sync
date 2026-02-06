@@ -248,7 +248,7 @@
   - Call `syncNotionToGit(config)` and print summary (pages created/updated/deleted/skipped/errors)
   - Clear error messages for missing config (no token, no database ID)
 
-- [ ] T019 [US6] Update `src/sync/notion-to-git.ts` — Replace stub with re-export from engine.ts (or inline delegation). Keep `syncNotionToGit` as the public API function. Update `src/index.ts` exports to include new modules: `NotionClientWrapper`, `blocksToMarkdown`, `propertiesToFrontmatter`.
+- [x] T019 [US6] Update `src/sync/notion-to-git.ts` — Replace stub with re-export from engine.ts (or inline delegation). Keep `syncNotionToGit` as the public API function. Update `src/index.ts` exports to include new modules: `NotionClientWrapper`, `blocksToMarkdown`, `propertiesToFrontmatter`.
 
 - [ ] T020 [US6] Create `test/e2e/sync.test.ts` — E2E test against live Notion test database:
   - Requires `NOTION_TOKEN` env var (skip if not available)
