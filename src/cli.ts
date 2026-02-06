@@ -15,12 +15,13 @@
  * Full CLI with more options will be implemented in spec 007.
  */
 
-import { syncNotionToGit, syncGitToNotion, type SyncOptions } from "./sync/engine.js";
+import { syncNotionToGit, syncGitToNotion, syncBidirectional, type SyncOptions } from "./sync/engine.js";
 import type { SyncConfig, ConflictStrategy } from "./types.js";
 
 interface CliArgs {
   command: string | null;
   fullSync: boolean;
+  bidirectional: boolean;
   outputDir: string;
   conflictStrategy: ConflictStrategy;
   help: boolean;
@@ -32,6 +33,7 @@ function parseArgs(args: string[]): CliArgs {
   const result: CliArgs = {
     command: null,
     fullSync: false,
+    bidirectional: false,
     outputDir: "./docs",
     conflictStrategy: "latest-wins",
     help: false,
@@ -44,6 +46,8 @@ function parseArgs(args: string[]): CliArgs {
       result.help = true;
     } else if (arg === "--full") {
       result.fullSync = true;
+    } else if (arg === "--bidirectional" || arg === "-b") {
+      result.bidirectional = true;
     } else if (arg === "--output" || arg === "-o") {
       const nextArg = args[i + 1];
       if (nextArg && !nextArg.startsWith("-")) {
@@ -84,14 +88,17 @@ Usage:
 
 Commands:
   sync    Sync pages from Notion to markdown files (pull)
+          Use --bidirectional for two-way sync
   push    Push markdown files to Notion (Git → Notion)
 
 Options:
-  --full          Force full sync (ignore change detection)
-  --output, -o    Output directory for markdown files (default: ./docs)
-  --conflict      Conflict resolution strategy (default: latest-wins)
-                  Values: latest-wins, notion-wins, git-wins
-  --help, -h      Show this help message
+  --full              Force full sync (ignore change detection)
+  --bidirectional, -b Enable bidirectional sync (both Notion↔Git)
+                      Only applies to 'sync' command
+  --output, -o        Output directory for markdown files (default: ./docs)
+  --conflict          Conflict resolution strategy (default: latest-wins)
+                      Values: latest-wins, notion-wins, git-wins
+  --help, -h          Show this help message
 
 Environment Variables (required):
   NOTION_TOKEN        Notion integration token
@@ -100,6 +107,8 @@ Environment Variables (required):
 Examples:
   notion-docusaurus-sync sync
   notion-docusaurus-sync sync --full
+  notion-docusaurus-sync sync --bidirectional
+  notion-docusaurus-sync sync --bidirectional --conflict notion-wins
   notion-docusaurus-sync sync --output ./my-docs
   notion-docusaurus-sync push
   notion-docusaurus-sync push --full
@@ -159,38 +168,102 @@ async function runSync(args: CliArgs): Promise<void> {
     quiet: false,
   };
 
-  console.log("Starting Notion → Git sync...");
-  console.log(`  Database: ${config.databaseId}`);
-  console.log(`  Output: ${config.outputDir}`);
-  console.log(`  Mode: ${args.fullSync ? "full" : "incremental"}`);
-  console.log("");
-
-  try {
-    const result = await syncNotionToGit(config, options);
-
-    // Print summary
-    const created = result.notionToGit.filter((r) => r.action === "created").length;
-    const updated = result.notionToGit.filter((r) => r.action === "updated").length;
-    const deleted = result.notionToGit.filter((r) => r.action === "deleted").length;
-    const skipped = result.notionToGit.filter((r) => r.action === "skipped").length;
-
+  if (args.bidirectional) {
+    // Bidirectional sync mode
+    console.log("Starting bidirectional sync...");
+    console.log(`  Database: ${config.databaseId}`);
+    console.log(`  Output: ${config.outputDir}`);
+    console.log(`  Mode: ${args.fullSync ? "full" : "incremental"}`);
+    console.log(`  Conflict strategy: ${config.conflictStrategy}`);
     console.log("");
-    console.log("Sync complete:");
-    console.log(`  Created: ${created}`);
-    console.log(`  Updated: ${updated}`);
-    console.log(`  Deleted: ${deleted}`);
-    console.log(`  Skipped: ${skipped}`);
 
-    if (result.errors.length > 0) {
-      console.log(`  Errors: ${result.errors.length}`);
-      for (const error of result.errors) {
-        console.error(`    - ${error.message}`);
+    try {
+      const result = await syncBidirectional(config, options);
+
+      // Print summary for Notion → Git
+      const n2gCreated = result.notionToGit.filter((r) => r.action === "created").length;
+      const n2gUpdated = result.notionToGit.filter((r) => r.action === "updated").length;
+      const n2gDeleted = result.notionToGit.filter((r) => r.action === "deleted").length;
+      const n2gSkipped = result.notionToGit.filter((r) => r.action === "skipped").length;
+
+      // Print summary for Git → Notion
+      const g2nCreated = result.gitToNotion.filter((r) => r.action === "created").length;
+      const g2nUpdated = result.gitToNotion.filter((r) => r.action === "updated").length;
+      const g2nArchived = result.gitToNotion.filter((r) => r.action === "deleted").length;
+      const g2nSkipped = result.gitToNotion.filter((r) => r.action === "skipped").length;
+
+      console.log("");
+      console.log("Bidirectional sync complete:");
+      console.log("");
+      console.log("  Notion → Git:");
+      console.log(`    Created: ${n2gCreated}`);
+      console.log(`    Updated: ${n2gUpdated}`);
+      console.log(`    Deleted: ${n2gDeleted}`);
+      console.log(`    Skipped: ${n2gSkipped}`);
+      console.log("");
+      console.log("  Git → Notion:");
+      console.log(`    Created: ${g2nCreated}`);
+      console.log(`    Updated: ${g2nUpdated}`);
+      console.log(`    Archived: ${g2nArchived}`);
+      console.log(`    Skipped: ${g2nSkipped}`);
+
+      // Print conflicts if any
+      if (result.conflicts.length > 0) {
+        console.log("");
+        console.log(`  Conflicts resolved: ${result.conflicts.length}`);
+        for (const conflict of result.conflicts) {
+          const winner = conflict.winner === "notion" ? "Notion" : "Git";
+          console.log(`    - "${conflict.slug}": ${winner} wins (${conflict.resolution})`);
+        }
       }
+
+      if (result.errors.length > 0) {
+        console.log("");
+        console.log(`  Errors: ${result.errors.length}`);
+        for (const error of result.errors) {
+          console.error(`    - ${error.message}`);
+        }
+        process.exit(1);
+      }
+    } catch (error) {
+      console.error("Bidirectional sync failed:", error instanceof Error ? error.message : error);
       process.exit(1);
     }
-  } catch (error) {
-    console.error("Sync failed:", error instanceof Error ? error.message : error);
-    process.exit(1);
+  } else {
+    // Notion → Git only (default sync behavior)
+    console.log("Starting Notion → Git sync...");
+    console.log(`  Database: ${config.databaseId}`);
+    console.log(`  Output: ${config.outputDir}`);
+    console.log(`  Mode: ${args.fullSync ? "full" : "incremental"}`);
+    console.log("");
+
+    try {
+      const result = await syncNotionToGit(config, options);
+
+      // Print summary
+      const created = result.notionToGit.filter((r) => r.action === "created").length;
+      const updated = result.notionToGit.filter((r) => r.action === "updated").length;
+      const deleted = result.notionToGit.filter((r) => r.action === "deleted").length;
+      const skipped = result.notionToGit.filter((r) => r.action === "skipped").length;
+
+      console.log("");
+      console.log("Sync complete:");
+      console.log(`  Created: ${created}`);
+      console.log(`  Updated: ${updated}`);
+      console.log(`  Deleted: ${deleted}`);
+      console.log(`  Skipped: ${skipped}`);
+
+      if (result.errors.length > 0) {
+        console.log(`  Errors: ${result.errors.length}`);
+        for (const error of result.errors) {
+          console.error(`    - ${error.message}`);
+        }
+        process.exit(1);
+      }
+    } catch (error) {
+      console.error("Sync failed:", error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
   }
 }
 
