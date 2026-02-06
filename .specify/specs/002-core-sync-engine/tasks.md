@@ -171,7 +171,7 @@
   - `removePageState(state: SyncStateFile, pageId: string): void` — remove a deleted page from state
   - `computeContentHash(content: string): string` — SHA-256 hash of file content (for future Git → Notion change detection)
 
-- [ ] T014 [US4] Create `test/unit/sync-state.test.ts` — Unit tests:
+- [x] T014 [US4] Create `test/unit/sync-state.test.ts` — Unit tests:
   - Test `loadState` with no file → empty state
   - Test `loadState` with valid file → parsed state
   - Test `loadState` with corrupted file → empty state + warning
