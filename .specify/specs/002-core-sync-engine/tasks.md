@@ -239,7 +239,7 @@
   - Return SyncResult with summary
   - Support `--full` mode (skip change detection, re-sync all)
 
-- [ ] T018 [US6] Update `src/cli.ts` — basic `sync` command:
+- [x] T018 [US6] Update `src/cli.ts` — basic `sync` command:
   - Parse minimal args: `sync` subcommand, `--full` flag, `--output` dir override
   - Load config from environment variables: `NOTION_TOKEN`, `NOTION_DATABASE_ID`
   - Default output dir: `./docs`
