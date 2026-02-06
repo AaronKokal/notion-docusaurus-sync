@@ -149,7 +149,7 @@
 
 ### Implementation
 
-- [ ] T009 [P] [US4] Create `src/converter/fm-to-properties.ts`:
+- [x] T009 [P] [US4] Create `src/converter/fm-to-properties.ts`:
   - `frontmatterToProperties(frontmatter: Record<string, unknown>, config: FrontmatterToPropertiesConfig): Record<string, any>` — Map frontmatter keys to Notion property names using reverse of the property mapping. Convert values to Notion property payloads.
   - Default reverse mapping: `{ title: "Name", slug: "Slug", description: "Description", tags: "Tags", sidebar_position: "Sidebar Position", date: "Published Date", sidebar_label: "Category" }`
   - Value converters per target property type:
@@ -163,7 +163,7 @@
   - Skip null/undefined/empty values
   - Config includes `propertyTypes` map: `{ Name: "title", Slug: "rich_text", Description: "rich_text", Tags: "multi_select", "Sidebar Position": "number", "Published Date": "date", Category: "select" }` — this tells the converter which Notion property type to create for each property name.
 
-- [ ] T010 [P] [US4] Create `test/unit/fm-to-properties.test.ts` — Unit tests:
+- [x] T010 [P] [US4] Create `test/unit/fm-to-properties.test.ts` — Unit tests:
   - `title: "Getting Started"` → Name title property payload
   - `slug: "getting-started"` → Slug rich_text property payload
   - `description: "An intro"` → Description rich_text property payload
