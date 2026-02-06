@@ -55,6 +55,14 @@ export {
  */
 export { richTextToMarkdown } from "./converter/rich-text.js";
 
+/**
+ * Markdown-to-Notion converters (Git → Notion direction)
+ */
+export { frontmatterToProperties } from "./converter/fm-to-properties.js";
+// Note: mdastToNotionBlocks and phrasesToRichText are not exported from index.ts
+// due to mdast directive type compatibility issues with TypeScript declarations.
+// Import directly from "./converter/md-to-blocks.js" or "./converter/md-to-rich-text.js".
+
 // =============================================================================
 // Sync State Management (for advanced use cases)
 // =============================================================================
@@ -81,6 +89,16 @@ export {
   slugFromTitle,
 } from "./sync/file-writer.js";
 
+/**
+ * File Reader for Git → Notion sync
+ */
+export { scanMarkdownFiles } from "./sync/file-reader.js";
+
+/**
+ * Notion Page Writer for Git → Notion sync
+ */
+export { NotionWriter } from "./sync/notion-writer.js";
+
 // =============================================================================
 // Core Types
 // =============================================================================
@@ -99,6 +117,10 @@ export type {
   PageState,
   SyncStateFile,
   PageStateEntry,
+  // Git → Notion types (spec 006)
+  MarkdownFileInfo,
+  NotionBlockPayload,
+  FrontmatterToPropertiesConfig,
 } from "./types.js";
 
 // =============================================================================
