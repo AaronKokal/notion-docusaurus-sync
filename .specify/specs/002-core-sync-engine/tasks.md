@@ -271,7 +271,7 @@
 - [x] T022 Verify `npm run test` passes all unit tests
 - [x] T023 Run E2E test: `NOTION_TOKEN=<token> npm run test -- test/e2e/` — verify against live database
 - [x] T024 Update `src/index.ts` with complete public API exports
-- [ ] T025 Add `.notion-sync-state.json` to `.gitignore`
+- [x] T025 Add `.notion-sync-state.json` to `.gitignore`
 
 ---
 
