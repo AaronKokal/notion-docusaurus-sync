@@ -363,7 +363,7 @@
   - Timeout: 60 seconds (multiple API calls with rate limiting)
 
 - [x] T023 Verify `npm run build` succeeds with all new code
-- [ ] T024 Verify `npm run test` passes all unit tests (existing + new)
+- [x] T024 Verify `npm run test` passes all unit tests (existing + new)
 - [ ] T025 Run E2E test: `NOTION_TOKEN=<token> npm run test -- test/e2e/push` — verify against live database
 
 ---
