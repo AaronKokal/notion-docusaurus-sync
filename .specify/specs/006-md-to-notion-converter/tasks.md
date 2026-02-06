@@ -282,7 +282,7 @@
   - Return SyncResult with gitToNotion results
   - Support `--full` mode (skip change detection, push all)
 
-- [ ] T018 [US6] Update `src/cli.ts` — Add `push` subcommand:
+- [x] T018 [US6] Update `src/cli.ts` — Add `push` subcommand:
   - Parse args: `push` subcommand, `--full` flag, `--conflict <strategy>` override
   - Load config from environment variables (same as sync): `NOTION_TOKEN`, `NOTION_DATABASE_ID`
   - Default output dir: `./docs`
