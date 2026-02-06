@@ -289,7 +289,7 @@
   - Call `syncGitToNotion(config)` and print summary (pages created/updated/archived/skipped/errors)
   - Clear error messages for missing config
 
-- [ ] T019 [US6] Update `src/index.ts` — Export new modules:
+- [x] T019 [US6] Update `src/index.ts` — Export new modules:
   - Export `parseMarkdownFile`, `parseMarkdown`, `extractFrontmatter` from parser
   - Export `phrasesToRichText` from md-to-rich-text
   - Export `mdastToNotionBlocks` from md-to-blocks
