@@ -78,17 +78,17 @@ The test DB has 8 properties: Name (title), Status (select: Draft/Published/Arch
 
 5 sample pages with varied statuses and block types (headings, paragraphs, code, callouts, tables, quotes, numbered/bulleted lists, dividers).
 
-## SDK v5 API Notes
+## SDK v5 API (Mandatory)
 
-The `@notionhq/client` v5 has a breaking change from v2/v3:
+All Notion API calls MUST use `@notionhq/client` v5 and its current API. No legacy REST fallbacks.
 
-- `databases.retrieve(database_id)` returns metadata but **no properties**
-- Databases now have a `data_sources[]` array with separate data source IDs
-- Use `dataSources.retrieve(data_source_id)` to get properties
-- Use `dataSources.query(data_source_id)` to query pages
-- The old `/v1/databases/{id}/query` endpoint still works via raw fetch
+The v5 SDK uses a `dataSources` indirection for database queries:
 
-The test DB's data source ID: `2ffc0fdf-942d-8181-b89d-000bab557711`
+1. `databases.retrieve(database_id)` → returns metadata + `data_sources[]` array (no properties)
+2. `dataSources.retrieve(data_source_id)` → returns properties
+3. `dataSources.query(data_source_id)` → queries pages
+
+Cache data source IDs per sync run. The test DB's data source ID: `2ffc0fdf-942d-8181-b89d-000bab557711`
 
 ## Tech Stack
 

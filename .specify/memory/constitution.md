@@ -2,7 +2,7 @@
 
 ## Vision
 
-Build a stable, reproducible, potentially publishable **bidirectional sync engine** between Notion databases and markdown files in a git repository. Docusaurus is the primary consumer of those markdown files, but the core value is the Notion-to-Git sync itself. The tool should be usable by anyone who wants to use Notion as a CMS for their Docusaurus documentation site -- and vice versa, allowing developers to edit docs in their repo and have changes reflected in Notion.
+Build a stable, reproducible, commercially viable **bidirectional sync engine** between Notion databases and markdown files in a git repository. Docusaurus is the primary consumer of those markdown files, but the core value is the Notion-to-Git sync itself. The tool should be usable by anyone who wants to use Notion as a CMS for their Docusaurus documentation site -- and vice versa, allowing developers to edit docs in their repo and have changes reflected in Notion. The long-term goal includes publishing as an npm package, potentially offering it as a professional product/integration.
 
 ## Core Principles
 
@@ -80,11 +80,19 @@ MVP first: Notion → Git direction with internal integration, CLI sync, basic b
 - CLI entry point via `npx notion-docusaurus-sync`
 - CI via GitHub Actions
 
+### VIII. Latest API, Future-Proof Foundations
+
+This tool targets commercial viability and long-term maintenance. All Notion API interactions MUST use the latest official SDK (`@notionhq/client` v5+) and the current API version. No legacy REST endpoint fallbacks (e.g., `Notion-Version: 2022-06-28`) unless the latest SDK has a confirmed, unresolvable bug.
+
+**Rationale**: Older API versions may be deprecated. Building on them creates invisible technical debt. The `dataSources` API is Notion's current direction — we follow it even when the older `databases/query` endpoint would be simpler today.
+
+**Enforced**: All Notion API calls go through the official SDK. The data source ID resolution pattern (`databases.retrieve` → `data_sources[0].id` → `dataSources.query`) is the standard flow. Cache data source IDs per sync run.
+
 ## Technology Stack
 
 - **Primary Language**: TypeScript (strict mode)
 - **Runtime**: Node.js 20+
-- **Notion SDK**: `@notionhq/client` (official)
+- **Notion SDK**: `@notionhq/client` v5+ (latest API version, `dataSources` API)
 - **Markdown Conversion (Notion → MD)**: `notion-to-md` v4 (with custom renderers) or custom
 - **Markdown Parsing (MD → Notion)**: `unified`/`remark` AST pipeline (to evaluate in research)
 - **Testing**: Vitest
@@ -160,4 +168,4 @@ This constitution supersedes conflicting practices. Amendments require:
 2. PR with updated constitution
 3. Review and approval
 
-**Version**: 2.0.0 | **Created**: 2026-02-06 | **Last Amended**: 2026-02-06
+**Version**: 2.1.0 | **Created**: 2026-02-06 | **Last Amended**: 2026-02-06
