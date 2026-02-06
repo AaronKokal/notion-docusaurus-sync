@@ -250,7 +250,7 @@
 
 - [x] T019 [US6] Update `src/sync/notion-to-git.ts` — Replace stub with re-export from engine.ts (or inline delegation). Keep `syncNotionToGit` as the public API function. Update `src/index.ts` exports to include new modules: `NotionClientWrapper`, `blocksToMarkdown`, `propertiesToFrontmatter`.
 
-- [ ] T020 [US6] Create `test/e2e/sync.test.ts` — E2E test against live Notion test database:
+- [x] T020 [US6] Create `test/e2e/sync.test.ts` — E2E test against live Notion test database:
   - Requires `NOTION_TOKEN` env var (skip if not available)
   - Run full sync against test DB ID `2ffc0fdf-942d-817f-ad7e-efd2e1887262`
   - Assert 3 markdown files created (Published pages only, not Draft/Archived)
